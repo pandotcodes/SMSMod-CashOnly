@@ -1,17 +1,35 @@
 ﻿using BepInEx;
 using HarmonyLib;
+using MyBox;
 
 namespace CashOnly
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInIncompatibility("CardOnly")]
     public class Plugin : BaseUnityPlugin
     {
+        bool patched = false;
+        Harmony harmony;
         private void Awake()
         {
-            // Plugin startup logic
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded! Applying patch...");
-            Harmony harmony = new Harmony("com.orpticon.CashOnly");
-            harmony.PatchAll();
+            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+            harmony = new Harmony("com.orpticon.CashOnly");
+        }
+        private void Update()
+        {
+            if (Singleton<OnboardingManager>.Instance != null && Singleton<OnboardingManager>.Instance.Completed && !patched)
+            {
+                patched = true;
+                Logger.LogInfo("Patching...");
+                // Plugin startup logic
+                harmony.PatchAll();
+            }
+            if (Singleton<OnboardingManager>.Instance != null && !Singleton<OnboardingManager>.Instance.Completed && patched)
+            {
+                patched = false;
+                Logger.LogInfo("Unpatching...");
+                harmony.UnpatchSelf();
+            }
         }
     }
     public static class PaymentFixerPatch
